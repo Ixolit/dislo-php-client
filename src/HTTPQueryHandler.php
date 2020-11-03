@@ -135,23 +135,40 @@ class HTTPQueryHandler {
 	 * @param string $data
 	 *
 	 * @return array
+	 * @throws \Exception
 	 */
 	private function parseCsv($data) {
-		$delimiter = ',';
-		$result = array();
-		$data = explode("\n", $data);
-
-		foreach($data as $row) {
-			if(empty($row)) {
-				continue;
-			}
-
-			preg_match_all("/([^\"'". $delimiter ."]+|[\"'][^\"']+[\"'])". $delimiter ."?/", $row, $splitRow);
-
-			$result[] = array_map(function($col) {
-				return trim($col, " \t\n\r\0\x0B\"");
-			}, $splitRow[1]);
+		$parserStream = fopen('php://temp', 'w');
+		if ($parserStream === false) {
+			throw new \Exception('Can not parse CSV data: Stream creation failed.');
 		}
+
+		if (false === fwrite($parserStream, $data)) {
+			throw new \Exception('Can not parse CSV data: Write to stream failed.');
+		}
+
+		if (false === rewind($parserStream)) {
+			throw new \Exception('Can not parse CSV data: Stream handling failed.');
+		}
+
+		$result = array();
+		while(($row = fgetcsv($parserStream, 0)) !== false) {
+			/*
+			 * Note: A blank line in a CSV file will be returned as an array comprising a single null field, and will
+			 * not be treated as an error.
+			 *
+			 * Note: If PHP is not properly recognizing the line endings when reading files either on or created by a
+			 * Macintosh computer, enabling the auto_detect_line_endings run-time configuration option may help resolve
+			 * the problem.
+			 *
+			 * array fgetcsv ( resource $handle [, int $length = 0 [, string $delimiter = "," [, string $enclosure = '"'
+			 * [, string $escape = "\" ]]]] )
+			 *
+			 * fgetcsv() returns NULL if an invalid handle is supplied or FALSE on other errors, including end of file.
+			 */
+			$result[] = $row;
+		}
+		\fclose($parserStream);
 
 		return $result;
 	}
