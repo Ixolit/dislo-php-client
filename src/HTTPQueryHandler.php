@@ -109,6 +109,7 @@ class HTTPQueryHandler {
 	 * @return string
 	 */
 	private function getHeader($headerName) {
+	    $headerName = \strtolower($headerName);
 		return array_key_exists($headerName, $this->headers) ? $this->headers[$headerName] : '';
 	}
 
@@ -126,7 +127,7 @@ class HTTPQueryHandler {
 			}
 
 			$headerParts = explode(':', $header, 2);
-			$this->headers[$headerParts[0]] = trim($headerParts[1]);
+			$this->headers[\strtolower($headerParts[0])] = trim($headerParts[1]);
 		}
 	}
 
